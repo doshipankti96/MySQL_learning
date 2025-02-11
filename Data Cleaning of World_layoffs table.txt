@@ -1,0 +1,50 @@
+CREATE TABLE layoffs_Staging 
+LIKE layoffs;
+
+INSERT INTO layoffs_Staging
+SELECT * FROM layoffs;      -------------------or-------------------
+
+
+-----Create duplicate table to delete duplicates by row numbers-----
+CREATE TABLE layoffs_staging (col1 text, col2 text, ...coln INT, row_num INT)
+INSERT INTO layoffs_staging (col1, col2, ...coln, row_num)
+SELECT *, ROW_NUMBER() OVER(PARTITION BY col1, col2, ...coln) as row_num
+FROM layoffs;
+
+
+-----Remove Duplicates-----
+DELETE FROM layoffs_staging WHERE row_num>1;
+
+-----Update NULL Industry-----
+Select * FROM layoffs_staging WHERE industry IS NULL OR industry='';
+
+UPDATE layoffs_staging t1
+JOIN layoffs_staging t2
+ON t1.company=t2.company
+SET t1.industry=t2.industry
+WHERE t1.industry IS NULL AND t2.industry IS NOT NULL;
+
+UPDATE layoffs_staging
+SET industry='Crypto'
+WHERE industry IN ('Crypto Currency', 'CryptoCurrency');
+
+-----Update Same Country Written in Diff Format----- ex- 'United States, 'United States.'
+UPDATE layoffs_staging
+SET country='United States' WHERE country LIKE 'United States%';
+
+-----Remove Useless Rows Where most fields are Null-----
+DELETE FROM layoffs_staging
+WHERE total_laid_off IS NULL
+AND percentage_laid_off IS NULL;
+
+-----Time for datatypes-----
+UPDATE layoffs_staging
+SET date=STR_TO_DATE(date,'%m/%d/%Y);
+
+ALTER TABLE layoffs_staging
+MODIFY COLUMN date DATE;
+
+-----NO more need of row numbers-----
+ALTER TABLE layoffs_staging
+DROP COLUMN row_num;
+
